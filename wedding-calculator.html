@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Wedding Payment Calculator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 450px;
+      margin: 20px auto;
+      padding: 10px;
+      background: #f9f9f9;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+    select, button {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      font-size: 1em;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      background: #fff;
+      border-radius: 5px;
+      box-shadow: 0 0 5px #ccc;
+    }
+    button {
+      cursor: pointer;
+      margin-top: 10px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Wedding Payment Calculator</h2>
+
+  <label for="roomType">Room Type</label>
+  <select id="roomType">
+    <option value="">-- Select Room --</option>
+    <option value="Junior Suite">Junior Suite</option>
+    <option value="Junior Suite Ocean View">Junior Suite Ocean View</option>
+    <option value="INSPIRA Swim Out">INSPIRA Swim Out</option>
+    <option value="Inspira Terrace">Inspira Terrace</option>
+  </select>
+
+  <label for="occupancy">Occupancy</label>
+  <select id="occupancy">
+    <option value="">-- Select Occupancy --</option>
+    <option value="Single">Single</option>
+    <option value="Double">Double</option>
+    <option value="Triple">Triple</option>
+  </select>
+
+  <label for="nights">Number of Nights</label>
+  <select id="nights">
+    <option value="">-- Select Nights --</option>
+    <option value="3">3</option>
+    <option value="4">4</option>
+    <option value="5">5</option>
+  </select>
+
+  <div class="result" id="result" style="display:none;">
+    <p><strong>Total Price:</strong> $<span id="totalPrice"></span></p>
+    <p><strong>Deposit:</strong> $400</p>
+    <p><strong>First Payment Due (Dec 11, 2025):</strong> $<span id="firstPayment"></span></p>
+    <p><strong>Final Payment Due (Mar 10, 2026):</strong> $<span id="finalPayment"></span></p>
+
+    <button id="downloadCalendar">Download Payment Reminders</button>
+  </div>
+
+<script>
+  // Pricing data as nested object for quick lookup
+  const pricing = {
+    "Junior Suite": {
+      "Single": { "3": 1654.99, "4": 2192.65, "5": 2730.31 },
+      "Double": { "3": 1981.40, "4": 2613.88, "5": 3246.34 },
+      "Triple": { "3": 2974.05, "4": 3923.40, "5": 4872.75 }
+    },
+    "Junior Suite Ocean View": {
+      "Single": { "3": 1717.32, "4": 2275.77, "5": 2834.21 },
+      "Double": { "3": 2051.54, "4": 2707.38, "5": 3363.22 },
+      "Triple": { "3": 3079.26, "4": 4063.65, "5": 5048.07 }
+    },
+    "INSPIRA Swim Out": {
+      "Single": { "3": 3139.40, "4": 4171.87, "5": 5204.34 },
+      "Double": { "3": 3181.40, "4": 4213.88, "5": 5246.34 },
+      "Triple": { "3": 4770.15, "4": 6318.21, "5": 7866.27 }
+    },
+    "Inspira Terrace": {
+      "Single": { "3": 3139.40, "4": 4171.87, "5": 5204.34 },
+      "Double": { "3": 3181.40, "4": 4213.88, "5": 5246.34 },
+      "Triple": { "3": 4770.15, "4": 6318.21, "5": 7866.27 }
+    }
+  };
+
+  const deposit = 400;
+  const firstDueDate = new Date('2025-12-11');
+  const finalDueDate = new Date('2026-03-10');
+
+  const roomType = document.getElementById('roomType');
+  const occupancy = document.getElementById('occupancy');
+  const nights = document.getElementById('nights');
+  const resultDiv = document.getElementById('result');
+  const totalPriceSpan = document.getElementById('totalPrice');
+  const firstPaymentSpan = document.getElementById('firstPayment');
+  const finalPaymentSpan = document.getElementById('finalPayment');
+  const downloadCalendarBtn = document.getElementById('downloadCalendar');
+
+  function calculate() {
+    const r = roomType.value;
+    const o = occupancy.value;
+    const n = nights.value;
+
+    if (r && o && n) {
+      const total = pricing[r][o][n];
+      totalPriceSpan.textContent = total.toFixed(2);
+
+      // 50% of total minus deposit
+      const firstPayment = (total / 2) - deposit;
+      firstPaymentSpan.textContent = firstPayment.toFixed(2);
+
+      // Remaining 50%
+      const finalPayment = total / 2;
+      finalPaymentSpan.textContent = finalPayment.toFixed(2);
+
+      resultDiv.style.display = 'block';
+    } else {
+      resultDiv.style.display = 'none';
+    }
+  }
+
+  function formatDateForICS(date) {
+    return date.toISOString().replace(/[-:]|\.\d{3}/g, '').substring(0, 8);
+  }
+
+  function generateICS() {
+    const title1 = "Wedding Payment – First Half Due";
+    const desc1 = "Your first 50% payment (minus $400 deposit) is due.";
+    const dt1 = formatDateForICS(firstDueDate);
+
+    const title2 = "Wedding Payment – Final Balance Due";
+    const desc2 = "Your final 50% payment is due.";
+    const dt2 = formatDateForICS(finalDueDate);
+
+    const icsContent = 
+`BEGIN:VCALENDAR
+VERSION:2.0
+CALSCALE:GREGORIAN
+BEGIN:VEVENT
+SUMMARY:${title1}
+DESCRIPTION:${desc1}
+DTSTART;VALUE=DATE:${dt1}
+DTEND;VALUE=DATE:${dt1}
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:${title2}
+DESCRIPTION:${desc2}
+DTSTART;VALUE=DATE:${dt2}
+DTEND;VALUE=DATE:${dt2}
+END:VEVENT
+END:VCALENDAR`;
+
+    const blob = new Blob([icsContent], { type: 'text/calendar' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Wedding_Payment_Reminders.ics';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  roomType.addEventListener('change', calculate);
+  occupancy.addEventListener('change', calculate);
+  nights.addEventListener('change', calculate);
+  downloadCalendarBtn.addEventListener('click', generateICS);
+</script>
+
+</body>
+</html>
